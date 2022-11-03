@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as mp
+from tensorflow import keras
 from keras import layers
 from keras.models import Sequential
 from tkinter import Tk
@@ -10,7 +11,7 @@ from tkinter.filedialog import askopenfilename
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 # dataset
-dataset_diretorio = "diretório da pasta com as pastas dos clubes"
+dataset_diretorio = "C:\\Users\\henri\\Downloads\\RN_ReconhecimentoClubes\\clubes"
 
 # redimensionamento
 batch_size = 32
@@ -42,24 +43,23 @@ AUTOTUNE = tf.data.AUTOTUNE
 treino_dataset = treino_dataset.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
 validacao_dataset = validacao_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
-""" Caso precisa de aumento de dados
-from tensorflow import keras
-data_augmentation = keras.Sequential(
+# Aplicar aumento de dados
+aumento_dados = keras.Sequential(
     [
-        layers.RandomFlip("horizontal",
+        layers.RandomFlip("horizontal",  # virar imagem randomicamente
                           input_shape=(img_height,
                                        img_width,
                                        3)),
-        layers.RandomRotation(0.1),
-        layers.RandomZoom(0.1),
+        layers.RandomRotation(0.1),  # girar imagem randomicamente
+        layers.RandomZoom(0.1),  # ampliar imagem randomicamente
     ]
 )
-"""
 
 # modelo
 qtd_classes = len(nome_classes)
 
 modelo = Sequential([
+    aumento_dados,
     layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),  # normalizar dados
     layers.Conv2D(16, 3, padding='same', activation='relu'),
     layers.MaxPooling2D(),
@@ -67,6 +67,7 @@ modelo = Sequential([
     layers.MaxPooling2D(),
     layers.Conv2D(64, 3, padding='same', activation='relu'),
     layers.MaxPooling2D(),
+    layers.Dropout(0.1),  # aplicar dropout
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
     layers.Dense(qtd_classes)
@@ -79,7 +80,7 @@ modelo.compile(optimizer='adam',
 modelo.summary()  # imprimir informações do modelo
 
 # treinar modelo
-epocas = 10
+epocas = 15
 historico_modelo = modelo.fit(
     treino_dataset,
     validation_data=validacao_dataset,
